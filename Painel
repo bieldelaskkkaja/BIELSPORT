@@ -1,0 +1,52 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from scraper import coletar_dados, LEAGUES
+from processador import gerar_sugestoes_time, gerar_sugestoes_jogador
+
+st.set_page_config(page_title="IA Biel Sports", layout="wide")
+
+st.title("⚽ IA Biel Sports – Estatísticas + Previsões para Apostas")
+
+# Seleção da liga
+liga = st.selectbox("🌍 Escolha uma liga:", list(LEAGUES.keys()))
+df_jogadores, df_times = coletar_dados(liga)
+
+# Seleção do time
+time = st.selectbox("🏟️ Selecione um time:", sorted(df_times['Squad'].unique()))
+df_time_selecionado = df_times[df_times['Squad'] == time].copy()
+
+# Sugestões automáticas
+sugestoes_time = gerar_sugestoes_time(df_time_selecionado.iloc[0])
+
+st.subheader(f"📊 Estatísticas do {time}")
+st.write(df_time_selecionado.set_index("Squad").T)
+st.markdown("**🤖 Sugestões da IA:**")
+for s in sugestoes_time:
+    st.info(s)
+
+# Gráfico do time
+st.subheader("📈 Gráfico – Time")
+fig_time = px.bar(df_time_selecionado.melt(id_vars=["Squad"], value_vars=["Gls", "Sh", "SoT", "CrdY"]),
+                  x='variable', y='value', color='variable', title=f"{time} – Estatísticas")
+st.plotly_chart(fig_time)
+
+# Jogadores do time
+jogadores_time = df_jogadores[df_jogadores['Squad'] == time]
+jogador = st.selectbox("🎯 Escolha um jogador:", jogadores_time['Player'].unique())
+df_jogador = jogadores_time[jogadores_time['Player'] == jogador]
+
+# Sugestões do jogador
+sugestoes_jogador = gerar_sugestoes_jogador(df_jogador.iloc[0])
+
+st.subheader(f"👤 Estatísticas de {jogador}")
+st.write(df_jogador.set_index("Player").T)
+st.markdown("**🤖 Sugestões da IA:**")
+for s in sugestoes_jogador:
+    st.success(s)
+
+# Gráfico jogador
+st.subheader("📈 Gráfico – Jogador")
+fig_jogador = px.bar(df_jogador.melt(id_vars=["Player", "Squad"], value_vars=["Gls", "Sh", "SoT"]),
+                     x='variable', y='value', color='variable', title=f"{jogador} – Estatísticas")
+st.plotly_chart(fig_jogador)
